@@ -21,14 +21,6 @@ def load_data():
         df['studio_clean'] = df['studio'].apply(clean_text)
         df['jenis_clean'] = df['jenis_tayangan'].apply(clean_text)
         
-        # Gabungkan semua fitur dengan bobot
-        df['combined_features'] = (
-            df['sinopsis_clean'] + ' ' + 
-            df['genre_clean'] + ' ' + df['genre_clean'] + ' ' +  # Genre diberi bobot 2x
-            df['studio_clean'] + ' ' +
-            df['jenis_clean']
-        )
-        
         return df
     except FileNotFoundError:
         raise FileNotFoundError("File anime_MAL_cleaned.csv tidak ditemukan di folder data/")
@@ -66,20 +58,11 @@ def build_similarity_matrices(df):
     )
     jenis_matrix = tfidf_jenis.fit_transform(df['jenis_clean'])
     
-    # TF-IDF untuk combined features
-    tfidf_combined = TfidfVectorizer(
-        max_features=6000,
-        stop_words='english',
-        ngram_range=(1, 2)
-    )
-    combined_matrix = tfidf_combined.fit_transform(df['combined_features'])
-    
     return {
         'sinopsis': sinopsis_matrix,
         'genre': genre_matrix,
         'studio': studio_matrix,
-        'jenis': jenis_matrix,
-        'combined': combined_matrix
+        'jenis': jenis_matrix
     }
 
 # Fungsi rekomendasi dengan multiple methods
@@ -99,9 +82,6 @@ def get_recommendations(anime_title, df, matrices, method='hybrid', n_recommenda
     elif method == 'genre':
         sim_scores = cosine_similarity(matrices['genre'][idx], matrices['genre']).flatten()
         weight_info = "100% Genre"
-    elif method == 'combined':
-        sim_scores = cosine_similarity(matrices['combined'][idx], matrices['combined']).flatten()
-        weight_info = "Sinopsis + Genre (weighted)"
     else:  # hybrid
         # Hitung similarity untuk masing-masing fitur
         sim_sinopsis = cosine_similarity(matrices['sinopsis'][idx], matrices['sinopsis']).flatten()

@@ -24,7 +24,7 @@ df = cached_load_data()
 matrices = cached_build_matrices(df)
 
 # Header
-st.title("🎌 Sistem Rekomendasi Anime Berbasis Konten")
+st.title("Sistem Rekomendasi Anime Konten Base Recomendation")
 st.markdown("*Menemukan anime serupa berdasarkan analisis sinopsis, genre, dan metadata*")
 st.divider()
 
@@ -36,12 +36,11 @@ with st.sidebar:
     st.subheader("⚙️ Metode Rekomendasi")
     method = st.radio(
         "Pilih metode analisis:",
-        ["hybrid", "sinopsis", "genre", "combined"],
+        ["hybrid", "sinopsis", "genre"],
         format_func=lambda x: {
             "hybrid": "🔥 Hybrid (Recommended)",
             "sinopsis": "📖 Sinopsis Only",
-            "genre": "🎭 Genre Only",
-            "combined": "🔀 Combined Features"
+            "genre": "🎭 Genre Only"
         }[x],
         help="Hybrid menggabungkan sinopsis, genre, studio, dan jenis tayangan dengan bobot optimal"
     )
@@ -55,31 +54,16 @@ with st.sidebar:
             - Genre: 25%
             - Studio: 10%
             - Jenis: 5%
-            
-            ✅ Hasil paling akurat & seimbang
             """)
         elif method == "sinopsis":
             st.markdown("""
             **📖 Sinopsis Only**
-            - 100% berdasarkan cerita/plot
-            
-            ✅ Menemukan anime dengan cerita mirip
-            ⚠️ Kadang lintas genre
+            - 100% berdasarkan sinopsis
             """)
         elif method == "genre":
             st.markdown("""
             **🎭 Genre Only**
             - 100% berdasarkan genre
-            
-            ✅ Konsisten dengan preferensi genre
-            ⚠️ Terlalu umum, kurang spesifik
-            """)
-        else:
-            st.markdown("""
-            **🔀 Combined Features**
-            - Gabungan semua fitur
-            
-            ✅ Seimbang tapi tidak optimal
             """)
     
     st.divider()
@@ -290,7 +274,7 @@ with tab3:
 st.divider()
 st.markdown("""
 <div style='text-align: center; color: #666; padding: 20px;'>
-    <p>🎌 Sistem Rekomendasi Anime menggunakan Hybrid Content-Based Filtering</p>
+    <p>Sistem Rekomendasi Anime menggunakan Hybrid Content-Based Filtering</p>
     <p><small>Dibuat dengan Python & Streamlit • TF-IDF + Cosine Similarity</small></p>
 </div>
 """, unsafe_allow_html=True)
