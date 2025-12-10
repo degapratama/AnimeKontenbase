@@ -24,7 +24,7 @@ df = cached_load_data()
 matrices = cached_build_matrices(df)
 
 # Header
-st.title("Sistem Rekomendasi Anime Konten Base Recomendation")
+st.title("🎌 Sistem Rekomendasi Anime Berbasis Konten")
 st.markdown("*Menemukan anime serupa berdasarkan analisis sinopsis, genre, dan metadata*")
 st.divider()
 
@@ -36,11 +36,12 @@ with st.sidebar:
     st.subheader("⚙️ Metode Rekomendasi")
     method = st.radio(
         "Pilih metode analisis:",
-        ["hybrid", "sinopsis", "genre"],
+        ["hybrid", "sinopsis", "genre", "combined"],
         format_func=lambda x: {
             "hybrid": "🔥 Hybrid (Recommended)",
             "sinopsis": "📖 Sinopsis Only",
-            "genre": "🎭 Genre Only"
+            "genre": "🎭 Genre Only",
+            "combined": "🔀 Combined Features"
         }[x],
         help="Hybrid menggabungkan sinopsis, genre, studio, dan jenis tayangan dengan bobot optimal"
     )
@@ -54,16 +55,31 @@ with st.sidebar:
             - Genre: 25%
             - Studio: 10%
             - Jenis: 5%
+            
+            ✅ Hasil paling akurat & seimbang
             """)
         elif method == "sinopsis":
             st.markdown("""
             **📖 Sinopsis Only**
-            - 100% berdasarkan sinopsis
+            - 100% berdasarkan cerita/plot
+            
+            ✅ Menemukan anime dengan cerita mirip
+            ⚠️ Kadang lintas genre
             """)
         elif method == "genre":
             st.markdown("""
             **🎭 Genre Only**
             - 100% berdasarkan genre
+            
+            ✅ Konsisten dengan preferensi genre
+            ⚠️ Terlalu umum, kurang spesifik
+            """)
+        else:
+            st.markdown("""
+            **🔀 Combined Features**
+            - Gabungan semua fitur
+            
+            ✅ Seimbang tapi tidak optimal
             """)
     
     st.divider()
