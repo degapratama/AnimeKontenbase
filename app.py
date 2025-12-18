@@ -33,47 +33,31 @@ with st.sidebar:
     
     # Info model rekomendasi
     st.subheader("⚙️ Model Rekomendasi")
-    with st.expander("📖 Cara Kerja Combined Features", expanded=True):
-        st.markdown("""
-        ### 🔧 Fitur yang Digunakan:
-        
-        **1. Sinopsis (60%)**
-           - Menganalisis cerita/plot anime
-        
-        **2. Genre (25%)**
-           - Kategori/tipe anime
-        
-        **3. Studio (10%)**
-           - Studio produksi anime
-        
-        **4. Jenis Tayangan (5%)**
-           - TV, Movie, OVA, Special, dll
-        
-        ### 📊 Cara Perhitungan:
-        
-        **Step 1: Gabung Semua Fitur dalam 1 Tabel (tanpa pembobotan)**
-        ```
-        Combined Text = [Sinopsis] + [Genre] + [Studio] + [Jenis Tayangan]
-        ```
-        (Semua fitur hanya digabungkan—tidak ada pengulangan untuk memberi bobot)
-        
-        **Step 2: TF-IDF pada Combined Text**
-        - Konversi gabungan teks menjadi vektor numerik
-        - Term Frequency-Inverse Document Frequency 
-        - Hanya 1 kali perhitungan untuk semua fitur
-        
-        **Step 3: Cosine Similarity**
-        ```
-        Similarity = cos(angle) antara dua vektor
-        Hasil: 0 (berbeda) sampai 1 (sama persis)
-        ```
-        
-        ✅ **Keuntungan:**
-        - SATU perhitungan untuk semua fitur (tidak terpisah)
-        - Fitur yang digabung jadi vektor tunggal
-        - Cosine similarity dihitung dari vektor gabungan
-        - Lebih efisien & konsisten
-        """)
+     with st.expander("📖 Cara Kerja Combined Features", expanded=True):
+          st.markdown("""
+          ### 🔧 Fitur yang Digunakan (digabung tanpa pembobotan):
+
+          - `sinopsis` (teks sinopsis/plot)
+          - `genre` (daftar genre)
+          - `studio` (nama studio)
+          - `jenis_tayangan` (TV/Movie/OVA/…)
+
+          ### 📊 Cara Perhitungan (sesuai implementasi):
+
+          1. Semua fitur digabung menjadi satu teks per anime:
+          ```
+          combined_features = sinopsis_clean + ' ' + genre_clean + ' ' + studio_clean + ' ' + jenis_clean
+          ```
+
+          2. TF-IDF diterapkan sekali pada `combined_features` untuk membuat vektor dokumen.
+              - Parameter TF-IDF pada kode: `max_features=6000`, `stop_words='english'`, `ngram_range=(1,2)`.
+
+          3. Kemiripan antar anime dihitung dengan Cosine Similarity pada vektor TF-IDF.
+              - Nilai similarity berkisar 0 (tidak mirip) sampai 1 (identik).
+
+          ✅ Karena semua fitur digabung terlebih dulu, interaksi antar fitur otomatis terwakili
+          oleh representasi TF-IDF tunggal — tidak ada perhitungan terpisah atau penjumlahan bobot.
+          """)
 
     
     st.divider()
