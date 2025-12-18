@@ -21,14 +21,6 @@ def load_data():
         df['studio_clean'] = df['studio'].apply(clean_text)
         df['jenis_clean'] = df['jenis_tayangan'].apply(clean_text)
         
-        # Gabungkan semua fitur dengan bobot
-        df['combined_features'] = (
-            df['sinopsis_clean'] + ' ' + 
-            df['genre_clean'] + ' ' + df['genre_clean'] + ' ' +  # Genre diberi bobot 2x
-            df['studio_clean'] + ' ' +
-            df['jenis_clean']
-        )
-        
         return df
     except FileNotFoundError:
         raise FileNotFoundError("File anime_MAL_cleaned.csv tidak ditemukan di folder data/")
@@ -37,36 +29,22 @@ def load_data():
 
 # Build similarity matrices
 def build_similarity_matrices(df):
-    # TF-IDF untuk sinopsis
-    tfidf_sinopsis = TfidfVectorizer(
-        max_features=5000,
-        stop_words='english',
-        ngram_range=(1, 2)
+    # Gabungkan SEMUA fitur dalam satu combined text
+    # Sinopsis diulang 60% (6x), Genre 25% (2.5x ≈ 2x), Studio 10% (1x), Jenis 5% (0.5x ≈ 1x)
+    df['combined_features'] = (
+        df['sinopsis_clean'] + ' ' + 
+        df['sinopsis_clean'] + ' ' + 
+        df['sinopsis_clean'] + ' ' + 
+        df['sinopsis_clean'] + ' ' + 
+        df['sinopsis_clean'] + ' ' + 
+        df['sinopsis_clean'] + ' ' +  # Sinopsis 6x untuk bobot 60%
+        df['genre_clean'] + ' ' + 
+        df['genre_clean'] + ' ' +  # Genre 2x untuk bobot 25%
+        df['studio_clean'] + ' ' +  # Studio 1x untuk bobot 10%
+        df['jenis_clean']  # Jenis 1x untuk bobot 5%
     )
-    sinopsis_matrix = tfidf_sinopsis.fit_transform(df['sinopsis_clean'])
     
-    # TF-IDF untuk genre
-    tfidf_genre = TfidfVectorizer(
-        max_features=500,
-        stop_words='english'
-    )
-    genre_matrix = tfidf_genre.fit_transform(df['genre_clean'])
-    
-    # TF-IDF untuk studio
-    tfidf_studio = TfidfVectorizer(
-        max_features=200,
-        stop_words='english'
-    )
-    studio_matrix = tfidf_studio.fit_transform(df['studio_clean'])
-    
-    # TF-IDF untuk jenis tayangan
-    tfidf_jenis = TfidfVectorizer(
-        max_features=50,
-        stop_words='english'
-    )
-    jenis_matrix = tfidf_jenis.fit_transform(df['jenis_clean'])
-    
-    # TF-IDF untuk combined features
+    # Buat SATU combined matrix dari semua fitur yang sudah digabung
     tfidf_combined = TfidfVectorizer(
         max_features=6000,
         stop_words='english',
@@ -75,10 +53,6 @@ def build_similarity_matrices(df):
     combined_matrix = tfidf_combined.fit_transform(df['combined_features'])
     
     return {
-        'sinopsis': sinopsis_matrix,
-        'genre': genre_matrix,
-        'studio': studio_matrix,
-        'jenis': jenis_matrix,
         'combined': combined_matrix
     }
 

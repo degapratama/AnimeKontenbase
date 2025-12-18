@@ -39,32 +39,32 @@ with st.sidebar:
         
         **1. Sinopsis (60%)**
            - Menganalisis cerita/plot anime
-           - Diulang 60% dalam combined text
         
         **2. Genre (25%)**
            - Kategori/tipe anime
-           - Diulang 25% dalam combined text
         
         **3. Studio (10%)**
            - Studio produksi anime
-           - Diulang 10% dalam combined text
         
         **4. Jenis Tayangan (5%)**
            - TV, Movie, OVA, Special, dll
-           - Diulang 5% dalam combined text
         
         ### 📊 Cara Perhitungan:
         
-        **Step 1: Gabung Semua Fitur**
+        **Step 1: Gabung Semua Fitur dalam 1 Tabel**
         ```
-        Combined Text = [Sinopsis] + [Genre] + [Genre] + 
-                        [Studio] + [Jenis Tayangan]
+        Combined Text = 
+            [Sinopsis] × 6 + 
+            [Genre] × 2 + 
+            [Studio] × 1 + 
+            [Jenis Tayangan] × 1
         ```
-        (Genre diulang 2x untuk memberikan bobot lebih)
+        *(Pengulangan untuk bobot: sinopsis 6x, genre 2x)*
         
-        **Step 2: TF-IDF Vectorization**
-        - Konversi combined text menjadi vektor numerik
-        - Menggunakan Term Frequency-Inverse Document Frequency
+        **Step 2: TF-IDF pada Combined Text**
+        - Konversi gabungan teks menjadi vektor numerik
+        - Term Frequency-Inverse Document Frequency 
+        - Hanya 1 kali perhitungan untuk semua fitur
         
         **Step 3: Cosine Similarity**
         ```
@@ -73,9 +73,10 @@ with st.sidebar:
         ```
         
         ✅ **Keuntungan:**
-        - Semua fitur dipertimbangkan sebagai satu kesatuan
-        - Interaksi antar fitur otomatis tertangkap oleh TF-IDF
-        - Hasil lebih holistik & natural
+        - SATU perhitungan untuk semua fitur (tidak terpisah)
+        - Fitur yang digabung jadi vektor tunggal
+        - Cosine similarity dihitung dari vektor gabungan
+        - Lebih efisien & konsisten
         """)
 
     
