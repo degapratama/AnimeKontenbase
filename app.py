@@ -25,62 +25,52 @@ matrices = cached_build_matrices(df)
 
 # Header
 st.title("🎌 Sistem Rekomendasi Anime Berbasis Konten")
-st.markdown("*Menemukan anime serupa berdasarkan analisis sinopsis, genre, dan metadata*")
+st.markdown("*Menemukan anime serupa menggunakan Combined Features Analysis*")
 st.divider()
 
-# Sidebar untuk filter dan metode
 with st.sidebar:
     st.header("🔍 Filter & Pengaturan")
     
-    # Pilih metode rekomendasi
-    st.subheader("⚙️ Metode Rekomendasi")
-    method = st.radio(
-        "Pilih metode analisis:",
-        ["hybrid", "sinopsis", "genre", "combined"],
-        format_func=lambda x: {
-            "hybrid": "🔥 Hybrid (Recommended)",
-            "sinopsis": "📖 Sinopsis Only",
-            "genre": "🎭 Genre Only",
-            "combined": "🔀 Combined Features"
-        }[x],
-        help="Hybrid menggabungkan sinopsis, genre, studio, dan jenis tayangan dengan bobot optimal"
-    )
-    
-    # Info metode
-    with st.expander("📖 Penjelasan Metode", expanded=False):
-        if method == "hybrid":
-            st.markdown("""
-            **🔥 Hybrid (Recommended)**
-            - Sinopsis: 60%
-            - Genre: 25%
-            - Studio: 10%
-            - Jenis: 5%
-            
-            ✅ Hasil paling akurat & seimbang
-            """)
-        elif method == "sinopsis":
-            st.markdown("""
-            **📖 Sinopsis Only**
-            - 100% berdasarkan cerita/plot
-            
-            ✅ Menemukan anime dengan cerita mirip
-            ⚠️ Kadang lintas genre
-            """)
-        elif method == "genre":
-            st.markdown("""
-            **🎭 Genre Only**
-            - 100% berdasarkan genre
-            
-            ✅ Konsisten dengan preferensi genre
-            ⚠️ Terlalu umum, kurang spesifik
-            """)
-        else:
-            st.markdown("""
-            **🔀 Combined Features**
-            - Gabungan semua fitur
-            
-            ✅ Seimbang tapi tidak optimal
-            """)
+    # Info model rekomendasi
+    st.subheader("⚙️ Model Rekomendasi")
+    with st.expander("📖 Cara Kerja Combined Features", expanded=True):
+        st.markdown("""
+        ### 🔧 Fitur yang Digunakan:
+        
+        **1. Sinopsis (60%)**
+           - Menganalisis cerita/plot anime
+           - Menggunakan TF-IDF + Cosine Similarity
+           - Bobot tertinggi karena paling penting
+        
+        **2. Genre (25%)**
+           - Kategori/tipe anime
+           - Memastikan preferensi genre terpenuhi
+        
+        **3. Studio (10%)**
+           - Studio produksi anime
+           - Identifikasi konsistensi produksi
+        
+        **4. Jenis Tayangan (5%)**
+           - TV, Movie, OVA, Special, dll
+           - Detail format penyajian
+        
+        ### 📊 Cara Perhitungan:
+        
+        ```
+        Similarity Score = 
+            (60% × Sinopsis_Similarity) +
+            (25% × Genre_Similarity) +
+            (10% × Studio_Similarity) +
+            (5% × Jenis_Similarity)
+        ```
+        
+        Setiap fitur dikonversi menjadi vektor TF-IDF, kemudian dihitung kesamaannya menggunakan **Cosine Similarity** (rentang 0-1).
+        
+        ✅ **Keuntungan:**
+        - Hasil paling seimbang & akurat
+        - Mempertimbangkan semua aspek anime
+        - Rekomendasi lebih spesifik & relevan
+        """)
     
     st.divider()
     
@@ -137,7 +127,7 @@ with tab1:
                 anime_input, 
                 df, 
                 matrices,
-                method=method,
+                method='combined',
                 n_recommendations=n_recommendations
             )
             
@@ -148,7 +138,7 @@ with tab1:
                 selected_anime = df[df['judul'] == anime_input].iloc[0]
                 
                 st.success(f"✅ Menampilkan rekomendasi berdasarkan: **{anime_input}**")
-                st.info(f"📊 Metode: {weight_info}")
+                st.info(f"📊 Model: {weight_info}")
                 
                 st.divider()
                 

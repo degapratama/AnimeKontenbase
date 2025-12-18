@@ -82,8 +82,7 @@ def build_similarity_matrices(df):
         'combined': combined_matrix
     }
 
-# Fungsi rekomendasi dengan multiple methods
-def get_recommendations(anime_title, df, matrices, method='hybrid', n_recommendations=5):
+def get_recommendations(anime_title, df, matrices, method='combined', n_recommendations=5):
     # Cari index anime
     idx = df[df['judul'].str.lower() == anime_title.lower()].index
     
@@ -92,31 +91,9 @@ def get_recommendations(anime_title, df, matrices, method='hybrid', n_recommenda
     
     idx = idx[0]
     
-    # Pilih metode perhitungan similarity
-    if method == 'sinopsis':
-        sim_scores = cosine_similarity(matrices['sinopsis'][idx], matrices['sinopsis']).flatten()
-        weight_info = "100% Sinopsis"
-    elif method == 'genre':
-        sim_scores = cosine_similarity(matrices['genre'][idx], matrices['genre']).flatten()
-        weight_info = "100% Genre"
-    elif method == 'combined':
-        sim_scores = cosine_similarity(matrices['combined'][idx], matrices['combined']).flatten()
-        weight_info = "Sinopsis + Genre (weighted)"
-    else:  # hybrid
-        # Hitung similarity untuk masing-masing fitur
-        sim_sinopsis = cosine_similarity(matrices['sinopsis'][idx], matrices['sinopsis']).flatten()
-        sim_genre = cosine_similarity(matrices['genre'][idx], matrices['genre']).flatten()
-        sim_studio = cosine_similarity(matrices['studio'][idx], matrices['studio']).flatten()
-        sim_jenis = cosine_similarity(matrices['jenis'][idx], matrices['jenis']).flatten()
-        
-        # Kombinasikan dengan bobot
-        sim_scores = (
-            0.60 * sim_sinopsis +
-            0.25 * sim_genre +
-            0.10 * sim_studio +
-            0.05 * sim_jenis
-        )
-        weight_info = "60% Sinopsis + 25% Genre + 10% Studio + 5% Jenis"
+    # Gunakan combined features (metode default dan satu-satunya)
+    sim_scores = cosine_similarity(matrices['combined'][idx], matrices['combined']).flatten()
+    weight_info = "60% Sinopsis + 25% Genre + 10% Studio + 5% Jenis"
     
     # Dapatkan index anime yang mirip (kecuali anime itu sendiri)
     similar_indices = sim_scores.argsort()[-n_recommendations-1:-1][::-1]
