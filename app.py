@@ -33,7 +33,7 @@ with st.sidebar:
     
     # Info model rekomendasi
     st.subheader("⚙️ Model Rekomendasi")
-     with st.expander("📖 Cara Kerja Combined Features", expanded=True):
+    with st.expander("📖 Cara Kerja Combined Features", expanded=True):
           st.markdown("""
           ### 🔧 Fitur yang Digunakan (digabung tanpa pembobotan):
 
