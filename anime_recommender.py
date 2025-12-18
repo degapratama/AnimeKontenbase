@@ -29,19 +29,13 @@ def load_data():
 
 # Build similarity matrices
 def build_similarity_matrices(df):
-    # Gabungkan SEMUA fitur dalam satu combined text
-    # Sinopsis diulang 60% (6x), Genre 25% (2.5x ≈ 2x), Studio 10% (1x), Jenis 5% (0.5x ≈ 1x)
+    # Gabungkan semua fitur menjadi satu combined text (TANPA pembobotan)
+    # Semua fitur digabung sebagai satu dokumen per anime, lalu TF-IDF dihitung
     df['combined_features'] = (
-        df['sinopsis_clean'] + ' ' + 
-        df['sinopsis_clean'] + ' ' + 
-        df['sinopsis_clean'] + ' ' + 
-        df['sinopsis_clean'] + ' ' + 
-        df['sinopsis_clean'] + ' ' + 
-        df['sinopsis_clean'] + ' ' +  # Sinopsis 6x untuk bobot 60%
-        df['genre_clean'] + ' ' + 
-        df['genre_clean'] + ' ' +  # Genre 2x untuk bobot 25%
-        df['studio_clean'] + ' ' +  # Studio 1x untuk bobot 10%
-        df['jenis_clean']  # Jenis 1x untuk bobot 5%
+        df['sinopsis_clean'].fillna('') + ' ' +
+        df['genre_clean'].fillna('') + ' ' +
+        df['studio_clean'].fillna('') + ' ' +
+        df['jenis_clean'].fillna('')
     )
     
     # Buat SATU combined matrix dari semua fitur yang sudah digabung
@@ -65,9 +59,9 @@ def get_recommendations(anime_title, df, matrices, method='combined', n_recommen
     
     idx = idx[0]
     
-    # Gunakan combined features (semua fitur digabung menjadi satu)
+    # Gunakan combined features (semua fitur digabung menjadi satu, tanpa pembobotan)
     sim_scores = cosine_similarity(matrices['combined'][idx], matrices['combined']).flatten()
-    weight_info = "Sinopsis + Genre + Studio + Jenis → TF-IDF → Cosine Similarity"
+    weight_info = "Gabungkan fitur (sinopsis+genre+studio+jenis) → TF-IDF → Cosine Similarity"
     
     # Dapatkan index anime yang mirip (kecuali anime itu sendiri)
     similar_indices = sim_scores.argsort()[-n_recommendations-1:-1][::-1]

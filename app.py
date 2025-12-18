@@ -51,15 +51,11 @@ with st.sidebar:
         
         ### 📊 Cara Perhitungan:
         
-        **Step 1: Gabung Semua Fitur dalam 1 Tabel**
+        **Step 1: Gabung Semua Fitur dalam 1 Tabel (tanpa pembobotan)**
         ```
-        Combined Text = 
-            [Sinopsis] × 6 + 
-            [Genre] × 2 + 
-            [Studio] × 1 + 
-            [Jenis Tayangan] × 1
+        Combined Text = [Sinopsis] + [Genre] + [Studio] + [Jenis Tayangan]
         ```
-        *(Pengulangan untuk bobot: sinopsis 6x, genre 2x)*
+        (Semua fitur hanya digabungkan—tidak ada pengulangan untuk memberi bobot)
         
         **Step 2: TF-IDF pada Combined Text**
         - Konversi gabungan teks menjadi vektor numerik
