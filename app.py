@@ -39,38 +39,45 @@ with st.sidebar:
         
         **1. Sinopsis (60%)**
            - Menganalisis cerita/plot anime
-           - Menggunakan TF-IDF + Cosine Similarity
-           - Bobot tertinggi karena paling penting
+           - Diulang 60% dalam combined text
         
         **2. Genre (25%)**
            - Kategori/tipe anime
-           - Memastikan preferensi genre terpenuhi
+           - Diulang 25% dalam combined text
         
         **3. Studio (10%)**
            - Studio produksi anime
-           - Identifikasi konsistensi produksi
+           - Diulang 10% dalam combined text
         
         **4. Jenis Tayangan (5%)**
            - TV, Movie, OVA, Special, dll
-           - Detail format penyajian
+           - Diulang 5% dalam combined text
         
         ### 📊 Cara Perhitungan:
         
+        **Step 1: Gabung Semua Fitur**
         ```
-        Similarity Score = 
-            (60% × Sinopsis_Similarity) +
-            (25% × Genre_Similarity) +
-            (10% × Studio_Similarity) +
-            (5% × Jenis_Similarity)
+        Combined Text = [Sinopsis] + [Genre] + [Genre] + 
+                        [Studio] + [Jenis Tayangan]
         ```
+        (Genre diulang 2x untuk memberikan bobot lebih)
         
-        Setiap fitur dikonversi menjadi vektor TF-IDF, kemudian dihitung kesamaannya menggunakan **Cosine Similarity** (rentang 0-1).
+        **Step 2: TF-IDF Vectorization**
+        - Konversi combined text menjadi vektor numerik
+        - Menggunakan Term Frequency-Inverse Document Frequency
+        
+        **Step 3: Cosine Similarity**
+        ```
+        Similarity = cos(angle) antara dua vektor
+        Hasil: 0 (berbeda) sampai 1 (sama persis)
+        ```
         
         ✅ **Keuntungan:**
-        - Hasil paling seimbang & akurat
-        - Mempertimbangkan semua aspek anime
-        - Rekomendasi lebih spesifik & relevan
+        - Semua fitur dipertimbangkan sebagai satu kesatuan
+        - Interaksi antar fitur otomatis tertangkap oleh TF-IDF
+        - Hasil lebih holistik & natural
         """)
+
     
     st.divider()
     
@@ -138,7 +145,7 @@ with tab1:
                 selected_anime = df[df['judul'] == anime_input].iloc[0]
                 
                 st.success(f"✅ Menampilkan rekomendasi berdasarkan: **{anime_input}**")
-                st.info(f"📊 Model: {weight_info}")
+                st.info(f"📊 Model: Semua fitur digabung → TF-IDF → Cosine Similarity")
                 
                 st.divider()
                 

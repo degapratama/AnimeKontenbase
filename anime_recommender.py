@@ -91,9 +91,9 @@ def get_recommendations(anime_title, df, matrices, method='combined', n_recommen
     
     idx = idx[0]
     
-    # Gunakan combined features (metode default dan satu-satunya)
+    # Gunakan combined features (semua fitur digabung menjadi satu)
     sim_scores = cosine_similarity(matrices['combined'][idx], matrices['combined']).flatten()
-    weight_info = "60% Sinopsis + 25% Genre + 10% Studio + 5% Jenis"
+    weight_info = "Sinopsis + Genre + Studio + Jenis → TF-IDF → Cosine Similarity"
     
     # Dapatkan index anime yang mirip (kecuali anime itu sendiri)
     similar_indices = sim_scores.argsort()[-n_recommendations-1:-1][::-1]
