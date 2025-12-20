@@ -28,7 +28,7 @@ def load_data():
 
 # Build similarity matrices
 def build_similarity_matrices(df):
-    # Semua fitur digabung sebagai satu dokumen per anime, lalu TF-IDF dihitung
+    # Semua fitur digabung sebagai satu fitur per anime, lalu TF-IDF dihitung
     df['combined_features'] = (
         df['sinopsis_final'].fillna('') + ' ' +
         df['genre_clean'].fillna('') + ' ' +
