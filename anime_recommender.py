@@ -16,11 +16,7 @@ def clean_text(text):
 def load_data():
     try:
         df = pd.read_csv('data/anime_dataset_final.csv')
-        # Use `sinopsis_final` if available, otherwise fall back to `sinopsis`
-        if 'sinopsis_final' in df.columns:
-            df['sinopsis_clean'] = df['sinopsis_final'].apply(clean_text)
-        else:
-            df['sinopsis_clean'] = df['sinopsis'].apply(clean_text)
+        df['sinopsis_clean'] = df['sinopsis'].apply(clean_text)
         df['genre_clean'] = df['genre'].apply(clean_text)
         df['studio_clean'] = df['studio'].apply(clean_text)
         df['jenis_clean'] = df['jenis_tayangan'].apply(clean_text)
