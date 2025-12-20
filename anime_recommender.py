@@ -16,7 +16,6 @@ def clean_text(text):
 def load_data():
     try:
         df = pd.read_csv('data/anime_dataset_final.csv')
-        df['sinopsis_clean'] = df['sinopsis'].apply(clean_text)
         df['genre_clean'] = df['genre'].apply(clean_text)
         df['studio_clean'] = df['studio'].apply(clean_text)
         df['jenis_clean'] = df['jenis_tayangan'].apply(clean_text)
@@ -32,7 +31,7 @@ def build_similarity_matrices(df):
     # Gabungkan semua fitur menjadi satu combined text (TANPA pembobotan)
     # Semua fitur digabung sebagai satu dokumen per anime, lalu TF-IDF dihitung
     df['combined_features'] = (
-        df['sinopsis_clean'].fillna('') + ' ' +
+        df['sinopsis_final'].fillna('') + ' ' +
         df['genre_clean'].fillna('') + ' ' +
         df['studio_clean'].fillna('') + ' ' +
         df['jenis_clean'].fillna('')

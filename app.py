@@ -24,42 +24,10 @@ df = cached_load_data()
 matrices = cached_build_matrices(df)
 
 # Header
-st.title("🎌 Sistem Rekomendasi Anime Berbasis Konten")
-st.markdown("*Menemukan anime serupa menggunakan Combined Features Analysis*")
+st.title("🎌 Sistem Rekomendasi Anime Konten Base Recomendation")
 st.divider()
 
-with st.sidebar:
-    st.header("🔍 Filter & Pengaturan")
-    
-    # Info model rekomendasi
-    st.subheader("⚙️ Model Rekomendasi")
-    with st.expander("📖 Cara Kerja Combined Features", expanded=True):
-          st.markdown("""
-          ### 🔧 Fitur yang Digunakan (digabung tanpa pembobotan):
-
-          - `sinopsis` (teks sinopsis/plot)
-          - `genre` (daftar genre)
-          - `studio` (nama studio)
-          - `jenis_tayangan` (TV/Movie/OVA/…)
-
-          ### 📊 Cara Perhitungan (sesuai implementasi):
-
-          1. Semua fitur digabung menjadi satu teks per anime:
-          ```
-          combined_features = sinopsis_clean + ' ' + genre_clean + ' ' + studio_clean + ' ' + jenis_clean
-          ```
-
-          2. TF-IDF diterapkan sekali pada `combined_features` untuk membuat vektor dokumen.
-              - Parameter TF-IDF pada kode: `max_features=6000`, `stop_words='english'`, `ngram_range=(1,2)`.
-
-          3. Kemiripan antar anime dihitung dengan Cosine Similarity pada vektor TF-IDF.
-              - Nilai similarity berkisar 0 (tidak mirip) sampai 1 (identik).
-
-          ✅ Karena semua fitur digabung terlebih dulu, interaksi antar fitur otomatis terwakili
-          oleh representasi TF-IDF tunggal — tidak ada perhitungan terpisah atau penjumlahan bobot.
-          """)
-
-    
+with st.sidebar: 
     st.divider()
     
     # Filter berdasarkan genre
@@ -124,9 +92,8 @@ with tab1:
             else:
                 # Tampilkan anime yang dipilih
                 selected_anime = df[df['judul'] == anime_input].iloc[0]
-                
                 st.success(f"✅ Menampilkan rekomendasi berdasarkan: **{anime_input}**")
-                st.info(f"📊 Model: Semua fitur digabung → TF-IDF → Cosine Similarity")
+        
                 
                 st.divider()
                 
@@ -268,7 +235,6 @@ with tab3:
 st.divider()
 st.markdown("""
 <div style='text-align: center; color: #666; padding: 20px;'>
-    <p>Sistem Rekomendasi Anime menggunakan Hybrid Content-Based Filtering</p>
-    <p><small>Dibuat dengan Python & Streamlit • TF-IDF + Cosine Similarity</small></p>
+    <p>Dibuat dengan Python & Streamlit • TF-IDF + Cosine Similarity</p>
 </div>
 """, unsafe_allow_html=True)
