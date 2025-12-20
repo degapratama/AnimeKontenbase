@@ -15,7 +15,7 @@ def clean_text(text):
 # Load data
 def load_data():
     try:
-        df = pd.read_csv('data/anime_MAL_cleaned.csv')
+        df = pd.read_csv('data/anime_dataset_final.csv')
         df['sinopsis_clean'] = df['sinopsis'].apply(clean_text)
         df['genre_clean'] = df['genre'].apply(clean_text)
         df['studio_clean'] = df['studio'].apply(clean_text)
