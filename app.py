@@ -19,12 +19,22 @@ def cached_load_data():
 def cached_build_matrices(df):
     return build_similarity_matrices(df)
 
-# Load data
-df = cached_load_data()
-matrices = cached_build_matrices(df)
+# Load data dengan error handling
+try:
+    df = cached_load_data()
+    if df.empty:
+        st.error("Dataframe kosong. Periksa file data/anime_dataset_clean.csv")
+        st.stop()
+    
+    tfidf_matrix = cached_build_matrices(df)
+    
+except Exception as e:
+    st.error(f"Error loading data: {e}")
+    st.info("Pastikan file anime_recommender.py ada di direktori yang sama")
+    st.stop()
 
 # Header
-st.title("🎌 Sistem Rekomendasi Anime Konten Base Recomendation")
+st.title("🎌 Sistem Rekomendasi Anime Content-Based")
 st.divider()
 
 with st.sidebar: 
@@ -64,11 +74,15 @@ with tab1:
     
     col1, col2 = st.columns([3, 1])
     with col1:
-        anime_input = st.selectbox(
-            "Pilih anime yang Anda sukai:",
-            options=filtered_df['judul'].tolist(),
-            help="Pilih anime untuk mendapatkan rekomendasi serupa"
-        )
+        if not filtered_df.empty:
+            anime_input = st.selectbox(
+                "Pilih anime yang Anda sukai:",
+                options=filtered_df['judul'].tolist(),
+                help="Pilih anime untuk mendapatkan rekomendasi serupa"
+            )
+        else:
+            st.warning("Tidak ada anime yang sesuai dengan filter.")
+            anime_input = None
     with col2:
         n_recommendations = st.number_input(
             "Jumlah Rekomendasi",
@@ -77,23 +91,23 @@ with tab1:
             value=5
         )
     
-    if st.button("🔮 Dapatkan Rekomendasi", type="primary", use_container_width=True):
+    if anime_input and st.button("🔮 Dapatkan Rekomendasi", type="primary", use_container_width=True):
         with st.spinner("Menganalisis dan mencari anime serupa..."):
-            recommendations, error, weight_info = get_recommendations(
+            recommendations, error = get_recommendations(
                 anime_input, 
                 df, 
-                matrices,
-                method='combined',
+                tfidf_matrix,
                 n_recommendations=n_recommendations
             )
             
             if error:
                 st.error(f"❌ {error}")
+            elif recommendations.empty:
+                st.error("Tidak ada rekomendasi yang ditemukan.")
             else:
                 # Tampilkan anime yang dipilih
                 selected_anime = df[df['judul'] == anime_input].iloc[0]
                 st.success(f"✅ Menampilkan rekomendasi berdasarkan: **{anime_input}**")
-        
                 
                 st.divider()
                 
@@ -111,13 +125,14 @@ with tab1:
                         st.markdown(f"**Genre:** {selected_anime['genre']}")
                         st.markdown(f"**Jenis:** {selected_anime['jenis_tayangan']}")
                         st.markdown(f"**Studio:** {selected_anime['studio']}")
-                        st.markdown(f"**Sinopsis:** {selected_anime['sinopsis']}")
+                        if 'sinopsis' in selected_anime and pd.notna(selected_anime['sinopsis']):
+                            st.markdown(f"**Sinopsis:** {selected_anime['sinopsis']}")
                 
                 st.divider()
                 st.subheader("✨ Rekomendasi untuk Anda")
                 
                 # Tampilkan rekomendasi dalam grid
-                for idx, (rec_idx, row) in enumerate(recommendations.iterrows()):
+                for idx, (_, row) in enumerate(recommendations.iterrows()):
                     with st.container(border=True):
                         col_poster, col_info = st.columns([1, 3])
                         
@@ -133,32 +148,33 @@ with tab1:
                             # Badge kemiripan
                             if similarity_percent >= 80:
                                 badge = "🔥 Sangat Mirip"
-                                color = "#00D084"
                             elif similarity_percent >= 60:
                                 badge = "✨ Mirip"
-                                color = "#0099FF"
                             elif similarity_percent >= 40:
                                 badge = "👍 Cukup Mirip"
-                                color = "#FF9500"
                             else:
                                 badge = "📌 Agak Mirip"
-                                color = "#A0A0A0"
                             
                             st.markdown(f"### {row['judul']}")
-                            st.markdown(f"**{badge}** | Kemiripan: `{similarity_percent:.1f}%` | Rating: ⭐ `{row['rating']}`")
+                            st.markdown(f"**{badge}** | Kemiripan: `{similarity_percent:.1f}%` | Rating: ⭐ `{row['rating']:.2f}`")
                             
                             col_meta1, col_meta2, col_meta3 = st.columns(3)
                             with col_meta1:
-                                st.markdown(f"**Jenis:** {row['jenis_tayangan']}")
+                                if 'jenis_tayangan' in row and pd.notna(row['jenis_tayangan']):
+                                    st.markdown(f"**Jenis:** {row['jenis_tayangan']}")
                             with col_meta2:
-                                st.markdown(f"**Musim:** {row['musim_tayang']}")
+                                if 'musim_tayang' in row and pd.notna(row['musim_tayang']):
+                                    st.markdown(f"**Musim:** {row['musim_tayang']}")
                             with col_meta3:
-                                st.markdown(f"**Studio:** {row['studio']}")
+                                if 'studio' in row and pd.notna(row['studio']):
+                                    st.markdown(f"**Studio:** {row['studio']}")
                             
-                            st.markdown(f"**Genre:** {row['genre']}")
+                            if 'genre' in row and pd.notna(row['genre']):
+                                st.markdown(f"**Genre:** {row['genre']}")
                             
-                            with st.expander("📖 Baca Sinopsis Lengkap"):
-                                st.write(row['sinopsis'])
+                            if 'sinopsis' in row and pd.notna(row['sinopsis']):
+                                with st.expander("📖 Baca Sinopsis Lengkap"):
+                                    st.write(row['sinopsis'])
                         
                         st.divider()
 
@@ -174,7 +190,15 @@ with tab2:
         st.markdown(f"**Hasil pencarian:** {len(filtered_df)} anime")
     
     # Tampilkan dataframe
-    display_df = filtered_df[['judul', 'rating', 'genre', 'jenis_tayangan', 'musim_tayang', 'studio']].copy()
+    display_columns = ['judul', 'rating', 'genre', 'jenis_tayangan']
+    
+    # Tambahkan kolom jika ada
+    optional_columns = ['musim_tayang', 'studio']
+    for col in optional_columns:
+        if col in df.columns:
+            display_columns.append(col)
+    
+    display_df = filtered_df[display_columns].copy()
     display_df = display_df.sort_values('rating', ascending=False)
     
     st.dataframe(
@@ -200,7 +224,10 @@ with tab3:
     with col2:
         st.metric("Rata-rata Rating", f"{df['rating'].mean():.2f}")
     with col3:
-        st.metric("Total Studio", df['studio'].nunique())
+        if 'studio' in df.columns:
+            st.metric("Total Studio", df['studio'].nunique())
+        else:
+            st.metric("Total Genre", df['genre'].nunique() if 'genre' in df.columns else "N/A")
     
     st.divider()
     
@@ -212,9 +239,10 @@ with tab3:
         st.bar_chart(rating_counts)
     
     with col2:
-        st.subheader("🎬 Jenis Tayangan")
-        jenis_counts = df['jenis_tayangan'].value_counts()
-        st.bar_chart(jenis_counts)
+        if 'jenis_tayangan' in df.columns:
+            st.subheader("🎬 Jenis Tayangan")
+            jenis_counts = df['jenis_tayangan'].value_counts()
+            st.bar_chart(jenis_counts)
     
     st.divider()
     
