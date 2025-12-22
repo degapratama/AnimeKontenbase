@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
 from anime_recommender import load_data, build_similarity_matrices, get_recommendations
 
 # Konfigurasi halaman
@@ -129,6 +131,247 @@ with tab1:
                             st.markdown(f"**Sinopsis:** {selected_anime['sinopsis']}")
                 
                 st.divider()
+                
+                # Analisis Kemiripan
+                with st.expander("📊 Visualisasi Rekomendasi", expanded=False):
+                    # Baris pertama: 2 grafik besar
+                    col_chart1, col_chart2 = st.columns(2)
+                    
+                    with col_chart1:
+                        st.markdown("#### Perbandingan Rating")
+                        # Bar chart horizontal untuk rating
+                        
+                        fig_rating = go.Figure(go.Bar(
+                            x=recommendations['rating'],
+                            y=recommendations['judul'].str[:25],
+                            orientation='h',
+                            marker=dict(
+                                color=recommendations['rating'],
+                                colorscale='Viridis',
+                                showscale=False
+                            ),
+                            text=recommendations['rating'].round(2),
+                            textposition='auto',
+                        ))
+                        fig_rating.update_layout(
+                            height=350,
+                            margin=dict(l=0, r=0, t=0, b=0),
+                            xaxis_title="Rating",
+                            yaxis_title="Judul Film",
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                        )
+                        st.plotly_chart(fig_rating, use_container_width=True)
+                    
+                    with col_chart2:
+                        st.markdown("#### Jaringan Kesamaan Film")
+                        # Network graph sederhana
+                        
+                        # Posisi node dalam lingkaran
+                        n = len(recommendations)
+                        angles = [i * 2 * 3.14159 / n for i in range(n)]
+                        x_nodes = [2 * np.cos(angle) for angle in angles]
+                        y_nodes = [2 * np.sin(angle) for angle in angles]
+                        
+                        # Node center (anime pilihan)
+                        x_center, y_center = [0], [0]
+                        
+                        # Edge traces
+                        edge_x, edge_y = [], []
+                        for i in range(n):
+                            edge_x.extend([0, x_nodes[i], None])
+                            edge_y.extend([0, y_nodes[i], None])
+                        
+                        fig_network = go.Figure()
+                        
+                        # Edges
+                        fig_network.add_trace(go.Scatter(
+                            x=edge_x, y=edge_y,
+                            mode='lines',
+                            line=dict(color='rgba(125,125,125,0.3)', width=1),
+                            hoverinfo='none',
+                            showlegend=False
+                        ))
+                        
+                        # Recommendation nodes
+                        fig_network.add_trace(go.Scatter(
+                            x=x_nodes, y=y_nodes,
+                            mode='markers+text',
+                            marker=dict(
+                                size=recommendations['similarity_score'] * 100,
+                                color=recommendations['similarity_score'] * 100,
+                                colorscale='Blues',
+                                showscale=False,
+                                line=dict(width=2, color='white')
+                            ),
+                            text=recommendations['judul'].str[:15],
+                            textposition='top center',
+                            textfont=dict(size=8),
+                            hovertemplate='<b>%{text}</b><br>Kemiripan: %{marker.color:.1f}%<extra></extra>',
+                            showlegend=False
+                        ))
+                        
+                        # Center node
+                        fig_network.add_trace(go.Scatter(
+                            x=x_center, y=y_center,
+                            mode='markers+text',
+                            marker=dict(size=30, color='red', line=dict(width=2, color='white')),
+                            text=[anime_input[:15]],
+                            textposition='bottom center',
+                            textfont=dict(size=10, color='red'),
+                            hovertemplate='<b>Anime Pilihan</b><br>%{text}<extra></extra>',
+                            showlegend=False
+                        ))
+                        
+                        fig_network.update_layout(
+                            height=350,
+                            margin=dict(l=0, r=0, t=0, b=0),
+                            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                        )
+                        st.plotly_chart(fig_network, use_container_width=True)
+                    
+                    st.divider()
+                    
+                    # Baris kedua: 2 grafik tambahan
+                    col_chart3, col_chart4 = st.columns(2)
+                    
+                    with col_chart3:
+                        st.markdown("#### Scatter Plot Rekomendasi")
+                        # Scatter plot rating vs similarity
+                        fig_scatter = go.Figure()
+                        
+                        fig_scatter.add_trace(go.Scatter(
+                            x=recommendations['similarity_score'] * 100,
+                            y=recommendations['rating'],
+                            mode='markers+text',
+                            marker=dict(
+                                size=15,
+                                color=recommendations['similarity_score'] * 100,
+                                colorscale='Plasma',
+                                showscale=True,
+                                colorbar=dict(title="Kemiripan %")
+                            ),
+                            text=recommendations['judul'].str[:10],
+                            textposition='top center',
+                            textfont=dict(size=8),
+                            hovertemplate='<b>%{text}</b><br>Kemiripan: %{x:.1f}%<br>Rating: %{y:.2f}<extra></extra>'
+                        ))
+                        
+                        fig_scatter.update_layout(
+                            height=300,
+                            margin=dict(l=0, r=0, t=0, b=0),
+                            xaxis_title="Kemiripan (%)",
+                            yaxis_title="Rating",
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                        )
+                        st.plotly_chart(fig_scatter, use_container_width=True)
+                    
+                    with col_chart4:
+                        st.markdown("#### Distribusi Genre")
+                        # Genre distribution
+                        genre_count = {}
+                        for genres in recommendations['genre'].dropna():
+                            for genre in str(genres).split(','):
+                                genre = genre.strip()
+                                genre_count[genre] = genre_count.get(genre, 0) + 1
+                        
+                        if genre_count:
+                            genre_df = pd.DataFrame(list(genre_count.items()), columns=['Genre', 'Count'])
+                            genre_df = genre_df.sort_values('Count', ascending=True).tail(8)
+                            
+                            fig_genre = go.Figure(go.Bar(
+                                x=genre_df['Count'],
+                                y=genre_df['Genre'],
+                                orientation='h',
+                                marker=dict(
+                                    color=genre_df['Count'],
+                                    colorscale='Teal',
+                                    showscale=False
+                                ),
+                                text=genre_df['Count'],
+                                textposition='auto',
+                            ))
+                            fig_genre.update_layout(
+                                height=300,
+                                margin=dict(l=0, r=0, t=0, b=0),
+                                xaxis_title="Jumlah",
+                                yaxis_title="Genre",
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                paper_bgcolor='rgba(0,0,0,0)',
+                            )
+                            st.plotly_chart(fig_genre, use_container_width=True)
+                    
+                    st.divider()
+                    
+                    # Baris ketiga: Distribusi kata
+                    st.markdown("#### Distribusi Kata Kunci")
+                    
+                    # Ekstrak kata dari fitur_stem rekomendasi
+                    word_freq = {}
+                    for idx in recommendations.index:
+                        if 'fitur_stem' in df.columns and pd.notna(df.loc[idx, 'fitur_stem']):
+                            words = str(df.loc[idx, 'fitur_stem']).split()
+                            for word in words:
+                                if len(word) > 3:  # Filter kata minimal 4 karakter
+                                    word_freq[word] = word_freq.get(word, 0) + 1
+                    
+                    if word_freq:
+                        # Ambil top 20 kata
+                        top_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:20]
+                        words_df = pd.DataFrame(top_words, columns=['Kata', 'Frekuensi'])
+                        
+                        # Buat word cloud style bar chart
+                        fig_words = go.Figure(go.Bar(
+                            x=words_df['Frekuensi'],
+                            y=words_df['Kata'],
+                            orientation='h',
+                            marker=dict(
+                                color=words_df['Frekuensi'],
+                                colorscale='Viridis',
+                                showscale=True,
+                                colorbar=dict(title="Frekuensi", x=1.15)
+                            ),
+                            text=words_df['Frekuensi'],
+                            textposition='auto',
+                            hovertemplate='<b>%{y}</b><br>Frekuensi: %{x}<extra></extra>'
+                        ))
+                        
+                        fig_words.update_layout(
+                            height=500,
+                            margin=dict(l=0, r=80, t=0, b=0),
+                            xaxis_title="Frekuensi Kemunculan",
+                            yaxis_title="Kata Kunci",
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            yaxis=dict(autorange="reversed")
+                        )
+                        
+                        st.plotly_chart(fig_words, use_container_width=True)
+                    else:
+                        st.warning("Data fitur kata tidak tersedia untuk analisis")
+                    
+                    # Metrik statistik
+                    st.divider()
+                    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+                    with col_m1:
+                        avg_similarity = recommendations['similarity_score'].mean() * 100
+                        st.metric("Rata-rata Kemiripan", f"{avg_similarity:.1f}%")
+                    with col_m2:
+                        max_similarity = recommendations['similarity_score'].max() * 100
+                        st.metric("Kemiripan Tertinggi", f"{max_similarity:.1f}%")
+                    with col_m3:
+                        avg_rating = recommendations['rating'].mean()
+                        st.metric("Rata-rata Rating", f"{avg_rating:.2f}")
+                    with col_m4:
+                        total_recs = len(recommendations)
+                        st.metric("Total Rekomendasi", total_recs)
+                
+                st.divider()
+                
                 st.subheader("✨ Rekomendasi untuk Anda")
                 
                 # Tampilkan rekomendasi dalam grid
