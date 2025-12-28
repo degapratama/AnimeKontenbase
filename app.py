@@ -313,8 +313,8 @@ with tab1:
                     # Ekstrak kata dari fitur_stem rekomendasi
                     word_freq = {}
                     for idx in recommendations.index:
-                        if 'fitur_stem' in df.columns and pd.notna(df.loc[idx, 'fitur_stem']):
-                            words = str(df.loc[idx, 'fitur_stem']).split()
+                        if 'fitur' in df.columns and pd.notna(df.loc[idx, 'fitur']):
+                            words = str(df.loc[idx, 'fitur']).split()
                             for word in words:
                                 if len(word) > 3:  # Filter kata minimal 4 karakter
                                     word_freq[word] = word_freq.get(word, 0) + 1

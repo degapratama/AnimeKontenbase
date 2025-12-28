@@ -6,22 +6,22 @@ from sklearn.metrics.pairwise import cosine_similarity
 # Fungsi utama untuk load data dan build model
 def load_data_and_build_model():
     try:
-        df = pd.read_csv('data/anime_dataset_clean.csv')
+        df = pd.read_csv('data/anime_MAL_clean.csv')
 
         # Pastikan kolom fitur_stem ada
-        if 'fitur_stem' not in df.columns:
-            raise Exception("Kolom 'fitur_stem' tidak ditemukan")
+        if 'fitur' not in df.columns:
+            raise Exception("Kolom 'fitur' tidak ditemukan")
 
-        df['fitur_stem'] = df['fitur_stem'].fillna('')
+        df['fitur'] = df['fitur'].fillna('')
 
-        # TF-IDF hanya dari fitur_stem
+        # TF-IDF hanya dari fitur
         tfidf = TfidfVectorizer(
             max_features=6000,
             stop_words='english',
             ngram_range=(1, 2)
         )
 
-        tfidf_matrix = tfidf.fit_transform(df['fitur_stem'])
+        tfidf_matrix = tfidf.fit_transform(df['fitur'])
 
         return df, tfidf_matrix
 
