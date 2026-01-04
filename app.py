@@ -164,7 +164,7 @@ with tab1:
                         st.plotly_chart(fig_rating, use_container_width=True)
                     
                     with col_chart2:
-                        st.markdown("#### Jaringan Kesamaan Film")
+                        st.markdown("#### Jaringan Kesamaan Anime")
                         # Network graph sederhana
                         
                         # Posisi node dalam lingkaran
