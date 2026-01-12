@@ -95,7 +95,7 @@ with tab1:
     
     if anime_input and st.button("🔮 Dapatkan Rekomendasi", type="primary", use_container_width=True):
         with st.spinner("Menganalisis dan mencari anime serupa..."):
-            recommendations, error = get_recommendations(
+            recommendations, evaluation_metrics, original_idx, error = get_recommendations(
                 anime_input, 
                 df, 
                 tfidf_matrix,
@@ -354,8 +354,117 @@ with tab1:
                     else:
                         st.warning("Data fitur kata tidak tersedia untuk analisis")
                     
-                    # Metrik statistik
+                    # BARU: Evaluasi Metrik (Precision, Recall, F1-Score)
                     st.divider()
+                    st.markdown("#### 📈 Evaluasi Metrik Rekomendasi")
+                    
+                    if evaluation_metrics:
+                        col_metrics1, col_metrics2, col_metrics3 = st.columns(3)
+                        
+                        with col_metrics1:
+                            precision = evaluation_metrics['precision']
+                            st.metric(
+                                "Precision (Rata-rata)", 
+                                f"{precision:.3f}",
+                                help="Proporsi item relevan di antara item yang direkomendasikan"
+                            )
+                        
+                        with col_metrics2:
+                            recall = evaluation_metrics['recall']
+                            st.metric(
+                                "Recall (Rata-rata)", 
+                                f"{recall:.3f}",
+                                help="Proporsi item relevan yang berhasil direkomendasikan"
+                            )
+                        
+                        with col_metrics3:
+                            f1_score_val = evaluation_metrics['f1_score']
+                            st.metric(
+                                "F1-Score (Rata-rata)", 
+                                f"{f1_score_val:.3f}",
+                                help="Harmonic mean dari Precision dan Recall"
+                            )
+                        
+                        # Tampilkan chart untuk metrik per anime
+                        st.markdown("##### Metrik per Anime Rekomendasi")
+                        
+                        # Buat dataframe untuk chart
+                        metrics_df = pd.DataFrame({
+                            'Anime': recommendations['judul'].str[:20],
+                            'Precision': evaluation_metrics['individual_precisions'],
+                            'Recall': evaluation_metrics['individual_recalls'],
+                            'F1-Score': evaluation_metrics['individual_f1_scores']
+                        })
+                        
+                        # Chart bar untuk metrik per anime
+                        fig_metrics = go.Figure()
+                        
+                        fig_metrics.add_trace(go.Bar(
+                            x=metrics_df['Anime'],
+                            y=metrics_df['Precision'],
+                            name='Precision',
+                            marker_color='#1f77b4',
+                            text=metrics_df['Precision'].round(3),
+                            textposition='auto'
+                        ))
+                        
+                        fig_metrics.add_trace(go.Bar(
+                            x=metrics_df['Anime'],
+                            y=metrics_df['Recall'],
+                            name='Recall',
+                            marker_color='#ff7f0e',
+                            text=metrics_df['Recall'].round(3),
+                            textposition='auto'
+                        ))
+                        
+                        fig_metrics.add_trace(go.Bar(
+                            x=metrics_df['Anime'],
+                            y=metrics_df['F1-Score'],
+                            name='F1-Score',
+                            marker_color='#2ca02c',
+                            text=metrics_df['F1-Score'].round(3),
+                            textposition='auto'
+                        ))
+                        
+                        fig_metrics.update_layout(
+                            height=400,
+                            title="Metrik Evaluasi per Anime Rekomendasi",
+                            xaxis_title="Anime",
+                            yaxis_title="Nilai",
+                            barmode='group',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                        )
+                        
+                        st.plotly_chart(fig_metrics, use_container_width=True)
+                        
+                        # Penjelasan metrik
+                        with st.expander("ℹ️ Penjelasan Metrik Evaluasi"):
+                            st.markdown("""
+                            ### **Precision**
+                            - **Definisi**: Proporsi anime yang relevan (memiliki genre yang sama) di antara semua anime yang direkomendasikan
+                            - **Formula**: Precision = TP / (TP + FP)
+                            - **Interpretasi**: Semakin tinggi nilai precision, semakin akurat rekomendasi dalam memberikan anime yang benar-benar relevan
+                            
+                            ### **Recall**
+                            - **Definisi**: Proporsi anime relevan yang berhasil ditemukan dan direkomendasikan
+                            - **Formula**: Recall = TP / (TP + FN)
+                            - **Interpretasi**: Semakin tinggi nilai recall, semakin baik sistem dalam menemukan semua anime yang relevan
+                            
+                            ### **F1-Score**
+                            - **Definisi**: Harmonic mean dari Precision dan Recall
+                            - **Formula**: F1 = 2 * (Precision * Recall) / (Precision + Recall)
+                            - **Interpretasi**: Memberikan keseimbangan antara Precision dan Recall. Nilai 1 sempurna, 0 terburuk
+                            
+                            **Catatan**: Metrik dihitung berdasarkan kesamaan genre antara anime pilihan dan rekomendasi.
+                            """)
+                    else:
+                        st.warning("Metrik evaluasi tidak dapat dihitung. Pastikan kolom 'genre' ada dalam dataset.")
+                    
+                    # Metrik statistik lainnya
+                    st.divider()
+                    st.markdown("#### 📊 Ringkasan Statistik")
+                    
                     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
                     with col_m1:
                         avg_similarity = recommendations['similarity_score'].mean() * 100
@@ -398,8 +507,19 @@ with tab1:
                             else:
                                 badge = "📌 Agak Mirip"
                             
-                            st.markdown(f"### {row['judul']}")
-                            st.markdown(f"**{badge}** | Kemiripan: `{similarity_percent:.1f}%` | Rating: ⭐ `{row['rating']:.2f}`")
+                            # Tampilkan metrik evaluasi jika tersedia
+                            if evaluation_metrics and idx < len(evaluation_metrics['individual_precisions']):
+                                precision = evaluation_metrics['individual_precisions'][idx]
+                                recall = evaluation_metrics['individual_recalls'][idx]
+                                f1 = evaluation_metrics['individual_f1_scores'][idx]
+                                
+                                metrics_badge = f"📊 P:{precision:.2f} | R:{recall:.2f} | F1:{f1:.2f}"
+                                st.markdown(f"### {row['judul']}")
+                                st.markdown(f"**{badge}** | Kemiripan: `{similarity_percent:.1f}%` | Rating: ⭐ `{row['rating']:.2f}`")
+                                st.markdown(f"**{metrics_badge}**")
+                            else:
+                                st.markdown(f"### {row['judul']}")
+                                st.markdown(f"**{badge}** | Kemiripan: `{similarity_percent:.1f}%` | Rating: ⭐ `{row['rating']:.2f}`")
                             
                             col_meta1, col_meta2, col_meta3 = st.columns(3)
                             with col_meta1:
@@ -502,10 +622,3 @@ with tab3:
         }
     )
 
-# Footer
-st.divider()
-st.markdown("""
-<div style='text-align: center; color: #666; padding: 20px;'>
-    <p>Dibuat dengan Python & Streamlit • TF-IDF + Cosine Similarity</p>
-</div>
-""", unsafe_allow_html=True)
