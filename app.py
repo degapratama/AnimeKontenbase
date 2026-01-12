@@ -354,7 +354,7 @@ with tab1:
                     else:
                         st.warning("Data fitur kata tidak tersedia untuk analisis")
                     
-                    # BARU: Evaluasi Metrik (Precision, Recall, F1-Score)
+                    # Evaluasi Metrik (Precision, Recall, F1-Score)
                     st.divider()
                     st.markdown("#### 📈 Evaluasi Metrik Rekomendasi")
                     
@@ -513,10 +513,8 @@ with tab1:
                                 recall = evaluation_metrics['individual_recalls'][idx]
                                 f1 = evaluation_metrics['individual_f1_scores'][idx]
                                 
-                                metrics_badge = f"📊 P:{precision:.2f} | R:{recall:.2f} | F1:{f1:.2f}"
                                 st.markdown(f"### {row['judul']}")
                                 st.markdown(f"**{badge}** | Kemiripan: `{similarity_percent:.1f}%` | Rating: ⭐ `{row['rating']:.2f}`")
-                                st.markdown(f"**{metrics_badge}**")
                             else:
                                 st.markdown(f"### {row['judul']}")
                                 st.markdown(f"**{badge}** | Kemiripan: `{similarity_percent:.1f}%` | Rating: ⭐ `{row['rating']:.2f}`")
