@@ -2,61 +2,55 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.metrics import precision_score, recall_score, f1_score
 
-# Fungsi utama untuk load data dan build model
-def load_data_and_build_model():
+# Fungsi untuk load data
+def load_data():
     try:
         df = pd.read_csv('data/anime_MAL_clean.csv')
-
-        # Pastikan kolom fitur_stem ada
-        if 'fitur' not in df.columns:
-            raise Exception("Kolom 'fitur' tidak ditemukan")
-
         df['fitur'] = df['fitur'].fillna('')
+        return df
+    except FileNotFoundError:
+        raise FileNotFoundError("File anime_MAL_clean.csv tidak ditemukan di folder data/")
+    except Exception as e:
+        raise Exception(f"Error loading data: {str(e)}")
 
-        # TF-IDF hanya dari fitur
+# Fungsi untuk build similarity matrix
+def build_similarity_matrices(df):
+    try:
+        # Pastikan kolom fitur ada
+        if 'fitur' not in df.columns:
+            raise ValueError("Kolom 'fitur' tidak ditemukan dalam dataframe")
+        
+        # TF-IDF Vectorizer
         tfidf = TfidfVectorizer(
             max_features=6000,
             stop_words='english',
             ngram_range=(1, 2)
         )
-
+        
         tfidf_matrix = tfidf.fit_transform(df['fitur'])
-
-        return df, tfidf_matrix, tfidf
-
-    except FileNotFoundError:
-        raise FileNotFoundError("File anime_dataset_clean.csv tidak ditemukan di folder data/")
+        return tfidf_matrix
     except Exception as e:
-        raise Exception(f"Error: {str(e)}")
-
-# Fungsi untuk kompatibilitas dengan app.py
-def load_data():
-    """Wrapper function untuk kompatibilitas"""
-    df, _, _ = load_data_and_build_model()
-    return df
-
-def build_similarity_matrices(df):
-    """Wrapper function untuk kompatibilitas"""
-    _, tfidf_matrix, _ = load_data_and_build_model()
-    return tfidf_matrix
+        raise Exception(f"Error building similarity matrix: {str(e)}")
 
 # Fungsi untuk menghitung metrik evaluasi
-def calculate_evaluation_metrics(recommendations, original_anime_idx, df, top_k=5):
+def calculate_evaluation_metrics(recommendations, original_anime_idx, df):
     """
     Menghitung Precision, Recall, dan F1-Score untuk rekomendasi
     berdasarkan genre overlap
     """
     try:
-        # Genre anime asli
         if 'genre' not in df.columns:
             return None
         
+        # Genre anime asli
         original_genres = set()
         if pd.notna(df.iloc[original_anime_idx]['genre']):
             original_genres = set(str(df.iloc[original_anime_idx]['genre']).split(','))
-            original_genres = {g.strip() for g in original_genres}
+            original_genres = {g.strip() for g in original_genres if g.strip()}
+        
+        if not original_genres:
+            return None
         
         # Hitung metrik untuk setiap rekomendasi
         precisions = []
@@ -67,16 +61,22 @@ def calculate_evaluation_metrics(recommendations, original_anime_idx, df, top_k=
             rec_genres = set()
             if pd.notna(rec['genre']):
                 rec_genres = set(str(rec['genre']).split(','))
-                rec_genres = {g.strip() for g in rec_genres}
+                rec_genres = {g.strip() for g in rec_genres if g.strip()}
+            
+            if not rec_genres:
+                precisions.append(0)
+                recalls.append(0)
+                f1_scores.append(0)
+                continue
             
             # Hitung intersection
             intersection = original_genres.intersection(rec_genres)
             
             # Precision = TP / (TP + FP)
-            precision = len(intersection) / len(rec_genres) if len(rec_genres) > 0 else 0
+            precision = len(intersection) / len(rec_genres)
             
             # Recall = TP / (TP + FN)
-            recall = len(intersection) / len(original_genres) if len(original_genres) > 0 else 0
+            recall = len(intersection) / len(original_genres)
             
             # F1-Score = 2 * (precision * recall) / (precision + recall)
             f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
@@ -103,29 +103,44 @@ def calculate_evaluation_metrics(recommendations, original_anime_idx, df, top_k=
         print(f"Error calculating metrics: {e}")
         return None
 
-# Fungsi rekomendasi content-based
+# Fungsi rekomendasi utama
 def get_recommendations(anime_title, df, tfidf_matrix, n_recommendations=5):
-    # Cari index anime
-    idx = df[df['judul'].str.lower() == anime_title.lower()].index
-
-    if len(idx) == 0:
-        return pd.DataFrame(), None, None, "Anime tidak ditemukan dalam database"
-
-    idx = idx[0]
-
-    # Hitung cosine similarity
-    sim_scores = cosine_similarity(
-        tfidf_matrix[idx],
-        tfidf_matrix
-    ).flatten()
-
-    # Ambil anime paling mirip (kecuali dirinya sendiri)
-    similar_indices = sim_scores.argsort()[-n_recommendations-1:-1][::-1]
-
-    recommendations = df.iloc[similar_indices].copy()
-    recommendations['similarity_score'] = sim_scores[similar_indices]
-    
-    # Hitung metrik evaluasi
-    evaluation_metrics = calculate_evaluation_metrics(recommendations, idx, df, n_recommendations)
-
-    return recommendations, evaluation_metrics, idx, None
+    try:
+        # Cari index anime
+        matches = df[df['judul'].str.lower() == anime_title.lower()]
+        
+        if len(matches) == 0:
+            # Coba cari partial match
+            matches = df[df['judul'].str.contains(anime_title, case=False, na=False)]
+            if len(matches) == 0:
+                return pd.DataFrame(), None, None, "Anime tidak ditemukan dalam database"
+        
+        idx = matches.index[0]
+        
+        # Hitung cosine similarity
+        sim_scores = cosine_similarity(
+            tfidf_matrix[idx:idx+1],
+            tfidf_matrix
+        ).flatten()
+        
+        # Ambil anime paling mirip (kecuali dirinya sendiri)
+        # Urutkan dari tertinggi ke terendah dan ambil n+1 pertama
+        similar_indices = sim_scores.argsort()[-(n_recommendations + 1):][::-1]
+        
+        # Hilangkan anime itu sendiri dari hasil
+        similar_indices = [i for i in similar_indices if i != idx][:n_recommendations]
+        
+        if not similar_indices:
+            return pd.DataFrame(), None, None, "Tidak ditemukan anime yang mirip"
+        
+        # Buat dataframe rekomendasi
+        recommendations = df.iloc[similar_indices].copy()
+        recommendations['similarity_score'] = sim_scores[similar_indices]
+        
+        # Hitung metrik evaluasi
+        evaluation_metrics = calculate_evaluation_metrics(recommendations, idx, df)
+        
+        return recommendations, evaluation_metrics, idx, None
+        
+    except Exception as e:
+        return pd.DataFrame(), None, None, f"Error dalam proses rekomendasi: {str(e)}"
