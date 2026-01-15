@@ -16,24 +16,9 @@ st.set_page_config(
 def cached_load_data():
     return load_data()
 
-# Cache model TF-IDF
-@st.cache_resource
-def cached_build_matrices(df):
-    return build_similarity_matrices(df)
-
-# Load data dengan error handling
-try:
-    df = cached_load_data()
-    if df.empty:
-        st.error("Dataframe kosong. Periksa file data/anime_dataset_clean.csv")
-        st.stop()
-    
-    tfidf_matrix = cached_build_matrices(df)
-    
-except Exception as e:
-    st.error(f"Error loading data: {e}")
-    st.info("Pastikan file anime_recommender.py ada di direktori yang sama")
-    st.stop()
+# Load data
+df = cached_load_data()
+tfidf_matrix = build_similarity_matrices(df)
 
 # Header
 st.title("🎌 Sistem Rekomendasi Anime Content-Based")
@@ -41,50 +26,26 @@ st.divider()
 
 with st.sidebar: 
     st.divider()
-    
-    # Filter berdasarkan genre
-    all_genres = set()
-    for genres in df['genre'].dropna():
-        all_genres.update([g.strip() for g in str(genres).split(',')])
-    selected_genre = st.selectbox("Filter Genre", ["Semua Genre"] + sorted(list(all_genres)))
-    
-    # Filter berdasarkan jenis tayangan
-    jenis_options = ["Semua Jenis"] + sorted(df['jenis_tayangan'].dropna().unique().tolist())
-    selected_jenis = st.selectbox("Filter Jenis Tayangan", jenis_options)
-    
-    # Filter berdasarkan rating
-    min_rating = st.slider("Rating Minimum", 0.0, 10.0, 0.0, 0.5)
-    
-    st.divider()
     st.markdown("### 📊 Statistik Dataset")
     st.metric("Total Anime", len(df))
     st.metric("Rata-rata Rating", f"{df['rating'].mean():.2f}")
+    st.divider()
 
-# Aplikasikan filter
+# Gunakan data asli tanpa filter
 filtered_df = df.copy()
-if selected_genre != "Semua Genre":
-    filtered_df = filtered_df[filtered_df['genre'].str.contains(selected_genre, na=False, case=False)]
-if selected_jenis != "Semua Jenis":
-    filtered_df = filtered_df[filtered_df['jenis_tayangan'] == selected_jenis]
-filtered_df = filtered_df[filtered_df['rating'] >= min_rating]
 
 # Tab navigasi
-tab1, tab2, tab3 = st.tabs(["🎯 Rekomendasi", "📋 Database Anime", "📈 Analisis"])
+tab1 = st.tabs(["🎯 Rekomendasi"])[0]
 
 with tab1:
     st.header("🎬 Cari Rekomendasi Anime")
     
     col1, col2 = st.columns([3, 1])
     with col1:
-        if not filtered_df.empty:
-            anime_input = st.selectbox(
-                "Pilih anime yang Anda sukai:",
-                options=filtered_df['judul'].tolist(),
-                help="Pilih anime untuk mendapatkan rekomendasi serupa"
-            )
-        else:
-            st.warning("Tidak ada anime yang sesuai dengan filter.")
-            anime_input = None
+        anime_input = st.selectbox(
+            "Pilih anime yang Anda sukai:",
+            options=filtered_df['judul'].tolist()
+        )
     with col2:
         n_recommendations = st.number_input(
             "Jumlah Rekomendasi",
@@ -102,11 +63,7 @@ with tab1:
                 n_recommendations=n_recommendations
             )
             
-            if error:
-                st.error(f"❌ {error}")
-            elif recommendations.empty:
-                st.error("Tidak ada rekomendasi yang ditemukan.")
-            else:
+            if not error and not recommendations.empty:
                 # Tampilkan anime yang dipilih
                 selected_anime = df[df['judul'] == anime_input].iloc[0]
                 st.success(f"✅ Menampilkan rekomendasi berdasarkan: **{anime_input}**")
@@ -164,81 +121,6 @@ with tab1:
                         st.plotly_chart(fig_rating, use_container_width=True)
                     
                     with col_chart2:
-                        st.markdown("#### Jaringan Kesamaan Anime")
-                        # Network graph sederhana
-                        
-                        # Posisi node dalam lingkaran
-                        n = len(recommendations)
-                        angles = [i * 2 * 3.14159 / n for i in range(n)]
-                        x_nodes = [2 * np.cos(angle) for angle in angles]
-                        y_nodes = [2 * np.sin(angle) for angle in angles]
-                        
-                        # Node center (anime pilihan)
-                        x_center, y_center = [0], [0]
-                        
-                        # Edge traces
-                        edge_x, edge_y = [], []
-                        for i in range(n):
-                            edge_x.extend([0, x_nodes[i], None])
-                            edge_y.extend([0, y_nodes[i], None])
-                        
-                        fig_network = go.Figure()
-                        
-                        # Edges
-                        fig_network.add_trace(go.Scatter(
-                            x=edge_x, y=edge_y,
-                            mode='lines',
-                            line=dict(color='rgba(125,125,125,0.3)', width=1),
-                            hoverinfo='none',
-                            showlegend=False
-                        ))
-                        
-                        # Recommendation nodes
-                        fig_network.add_trace(go.Scatter(
-                            x=x_nodes, y=y_nodes,
-                            mode='markers+text',
-                            marker=dict(
-                                size=recommendations['similarity_score'] * 100,
-                                color=recommendations['similarity_score'] * 100,
-                                colorscale='Blues',
-                                showscale=False,
-                                line=dict(width=2, color='white')
-                            ),
-                            text=recommendations['judul'].str[:15],
-                            textposition='top center',
-                            textfont=dict(size=8),
-                            hovertemplate='<b>%{text}</b><br>Kemiripan: %{marker.color:.1f}%<extra></extra>',
-                            showlegend=False
-                        ))
-                        
-                        # Center node
-                        fig_network.add_trace(go.Scatter(
-                            x=x_center, y=y_center,
-                            mode='markers+text',
-                            marker=dict(size=30, color='red', line=dict(width=2, color='white')),
-                            text=[anime_input[:15]],
-                            textposition='bottom center',
-                            textfont=dict(size=10, color='red'),
-                            hovertemplate='<b>Anime Pilihan</b><br>%{text}<extra></extra>',
-                            showlegend=False
-                        ))
-                        
-                        fig_network.update_layout(
-                            height=350,
-                            margin=dict(l=0, r=0, t=0, b=0),
-                            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                            plot_bgcolor='rgba(0,0,0,0)',
-                            paper_bgcolor='rgba(0,0,0,0)',
-                        )
-                        st.plotly_chart(fig_network, use_container_width=True)
-                    
-                    st.divider()
-                    
-                    # Baris kedua: 2 grafik tambahan
-                    col_chart3, col_chart4 = st.columns(2)
-                    
-                    with col_chart3:
                         st.markdown("#### Scatter Plot Rekomendasi")
                         # Scatter plot rating vs similarity
                         fig_scatter = go.Figure()
@@ -270,9 +152,12 @@ with tab1:
                         )
                         st.plotly_chart(fig_scatter, use_container_width=True)
                     
-                    with col_chart4:
-                        st.markdown("#### Distribusi Genre")
+                    # Baris kedua: 2 grafik tambahan
+                    col_chart3, col_chart4 = st.columns(2)
+                    
+                    with col_chart3:
                         # Genre distribution
+                        st.markdown("#### Distribusi Genre")
                         genre_count = {}
                         for genres in recommendations['genre'].dropna():
                             for genre in str(genres).split(','):
@@ -305,56 +190,50 @@ with tab1:
                             )
                             st.plotly_chart(fig_genre, use_container_width=True)
                     
-                    st.divider()
-                    
-                    # Baris ketiga: Distribusi kata
-                    st.markdown("#### Distribusi Kata Kunci")
-                    
-                    # Ekstrak kata dari fitur_stem rekomendasi
-                    word_freq = {}
-                    for idx in recommendations.index:
-                        if 'fitur' in df.columns and pd.notna(df.loc[idx, 'fitur']):
-                            words = str(df.loc[idx, 'fitur']).split()
-                            for word in words:
-                                if len(word) > 3:  # Filter kata minimal 4 karakter
-                                    word_freq[word] = word_freq.get(word, 0) + 1
-                    
-                    if word_freq:
-                        # Ambil top 20 kata
-                        top_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:20]
-                        words_df = pd.DataFrame(top_words, columns=['Kata', 'Frekuensi'])
+                    with col_chart4:
+                        st.markdown("#### Distribusi Kata Kunci")
                         
-                        # Buat word cloud style bar chart
-                        fig_words = go.Figure(go.Bar(
-                            x=words_df['Frekuensi'],
-                            y=words_df['Kata'],
-                            orientation='h',
-                            marker=dict(
-                                color=words_df['Frekuensi'],
-                                colorscale='Viridis',
-                                showscale=True,
-                                colorbar=dict(title="Frekuensi", x=1.15)
-                            ),
-                            text=words_df['Frekuensi'],
-                            textposition='auto',
-                            hovertemplate='<b>%{y}</b><br>Frekuensi: %{x}<extra></extra>'
-                        ))
+                        # Ekstrak kata dari fitur_stem rekomendasi
+                        word_freq = {}
+                        for idx in recommendations.index:
+                            if 'fitur' in df.columns and pd.notna(df.loc[idx, 'fitur']):
+                                words = str(df.loc[idx, 'fitur']).split()
+                                for word in words:
+                                    if len(word) > 3:  # Filter kata minimal 4 karakter
+                                        word_freq[word] = word_freq.get(word, 0) + 1
                         
-                        fig_words.update_layout(
-                            height=500,
-                            margin=dict(l=0, r=80, t=0, b=0),
-                            xaxis_title="Frekuensi Kemunculan",
-                            yaxis_title="Kata Kunci",
-                            plot_bgcolor='rgba(0,0,0,0)',
-                            paper_bgcolor='rgba(0,0,0,0)',
-                            yaxis=dict(autorange="reversed")
-                        )
-                        
-                        st.plotly_chart(fig_words, use_container_width=True)
-                    else:
-                        st.warning("Data fitur kata tidak tersedia untuk analisis")
+                        if word_freq:
+                            # Ambil top 20 kata
+                            top_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:15]
+                            words_df = pd.DataFrame(top_words, columns=['Kata', 'Frekuensi'])
+                            
+                            # Buat word cloud style bar chart
+                            fig_words = go.Figure(go.Bar(
+                                x=words_df['Frekuensi'],
+                                y=words_df['Kata'],
+                                orientation='h',
+                                marker=dict(
+                                    color=words_df['Frekuensi'],
+                                    colorscale='Viridis',
+                                    showscale=False
+                                ),
+                                text=words_df['Frekuensi'],
+                                textposition='auto',
+                                hovertemplate='<b>%{y}</b><br>Frekuensi: %{x}<extra></extra>'
+                            ))
+                            
+                            fig_words.update_layout(
+                                height=300,
+                                margin=dict(l=0, r=0, t=0, b=0),
+                                xaxis_title="Frekuensi Kemunculan",
+                                yaxis_title="Kata Kunci",
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                yaxis=dict(autorange="reversed")
+                            )
+                            
+                            st.plotly_chart(fig_words, use_container_width=True)
                     
-                    # Evaluasi Metrik (Precision, Recall, F1-Score)
                     st.divider()
                     st.markdown("#### 📈 Evaluasi Metrik Rekomendasi")
                     
@@ -363,27 +242,15 @@ with tab1:
                         
                         with col_metrics1:
                             precision = evaluation_metrics['precision']
-                            st.metric(
-                                "Precision (Rata-rata)", 
-                                f"{precision:.3f}",
-                                help="Proporsi item relevan di antara item yang direkomendasikan"
-                            )
+                            st.metric("Precision (Rata-rata)", f"{precision:.3f}")
                         
                         with col_metrics2:
                             recall = evaluation_metrics['recall']
-                            st.metric(
-                                "Recall (Rata-rata)", 
-                                f"{recall:.3f}",
-                                help="Proporsi item relevan yang berhasil direkomendasikan"
-                            )
+                            st.metric("Recall (Rata-rata)", f"{recall:.3f}")
                         
                         with col_metrics3:
                             f1_score_val = evaluation_metrics['f1_score']
-                            st.metric(
-                                "F1-Score (Rata-rata)", 
-                                f"{f1_score_val:.3f}",
-                                help="Harmonic mean dari Precision dan Recall"
-                            )
+                            st.metric("F1-Score (Rata-rata)", f"{f1_score_val:.3f}")
                         
                         # Tampilkan chart untuk metrik per anime
                         st.markdown("##### Metrik per Anime Rekomendasi")
@@ -437,29 +304,6 @@ with tab1:
                         )
                         
                         st.plotly_chart(fig_metrics, use_container_width=True)
-                        
-                        # Penjelasan metrik
-                        with st.expander("ℹ️ Penjelasan Metrik Evaluasi"):
-                            st.markdown("""
-                            ### **Precision**
-                            - **Definisi**: Proporsi anime yang relevan (memiliki genre yang sama) di antara semua anime yang direkomendasikan
-                            - **Formula**: Precision = TP / (TP + FP)
-                            - **Interpretasi**: Semakin tinggi nilai precision, semakin akurat rekomendasi dalam memberikan anime yang benar-benar relevan
-                            
-                            ### **Recall**
-                            - **Definisi**: Proporsi anime relevan yang berhasil ditemukan dan direkomendasikan
-                            - **Formula**: Recall = TP / (TP + FN)
-                            - **Interpretasi**: Semakin tinggi nilai recall, semakin baik sistem dalam menemukan semua anime yang relevan
-                            
-                            ### **F1-Score**
-                            - **Definisi**: Harmonic mean dari Precision dan Recall
-                            - **Formula**: F1 = 2 * (Precision * Recall) / (Precision + Recall)
-                            - **Interpretasi**: Memberikan keseimbangan antara Precision dan Recall. Nilai 1 sempurna, 0 terburuk
-                            
-                            **Catatan**: Metrik dihitung berdasarkan kesamaan genre antara anime pilihan dan rekomendasi.
-                            """)
-                    else:
-                        st.warning("Metrik evaluasi tidak dapat dihitung. Pastikan kolom 'genre' ada dalam dataset.")
                     
                     # Metrik statistik lainnya
                     st.divider()
@@ -512,12 +356,9 @@ with tab1:
                                 precision = evaluation_metrics['individual_precisions'][idx]
                                 recall = evaluation_metrics['individual_recalls'][idx]
                                 f1 = evaluation_metrics['individual_f1_scores'][idx]
-                                
-                                st.markdown(f"### {row['judul']}")
-                                st.markdown(f"**{badge}** | Kemiripan: `{similarity_percent:.1f}%` | Rating: ⭐ `{row['rating']:.2f}`")
-                            else:
-                                st.markdown(f"### {row['judul']}")
-                                st.markdown(f"**{badge}** | Kemiripan: `{similarity_percent:.1f}%` | Rating: ⭐ `{row['rating']:.2f}`")
+                            
+                            st.markdown(f"### {row['judul']}")
+                            st.markdown(f"**{badge}** | Kemiripan: `{similarity_percent:.1f}%` | Rating: ⭐ `{row['rating']:.2f}`")
                             
                             col_meta1, col_meta2, col_meta3 = st.columns(3)
                             with col_meta1:
@@ -538,85 +379,4 @@ with tab1:
                                     st.write(row['sinopsis'])
                         
                         st.divider()
-
-with tab2:
-    st.header("📚 Database Anime")
-    st.markdown(f"**Total:** {len(filtered_df)} anime ditampilkan")
-    
-    # Search box
-    search_query = st.text_input("🔍 Cari anime berdasarkan judul", "")
-    
-    if search_query:
-        filtered_df = filtered_df[filtered_df['judul'].str.contains(search_query, case=False, na=False)]
-        st.markdown(f"**Hasil pencarian:** {len(filtered_df)} anime")
-    
-    # Tampilkan dataframe
-    display_columns = ['judul', 'rating', 'genre', 'jenis_tayangan']
-    
-    # Tambahkan kolom jika ada
-    optional_columns = ['musim_tayang', 'studio']
-    for col in optional_columns:
-        if col in df.columns:
-            display_columns.append(col)
-    
-    display_df = filtered_df[display_columns].copy()
-    display_df = display_df.sort_values('rating', ascending=False)
-    
-    st.dataframe(
-        display_df,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "judul": "Judul",
-            "rating": st.column_config.NumberColumn("Rating", format="⭐ %.2f"),
-            "genre": "Genre",
-            "jenis_tayangan": "Jenis",
-            "musim_tayang": "Musim Tayang",
-            "studio": "Studio"
-        }
-    )
-
-with tab3:
-    st.header("📊 Analisis Dataset")
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total Anime", len(df))
-    with col2:
-        st.metric("Rata-rata Rating", f"{df['rating'].mean():.2f}")
-    with col3:
-        if 'studio' in df.columns:
-            st.metric("Total Studio", df['studio'].nunique())
-        else:
-            st.metric("Total Genre", df['genre'].nunique() if 'genre' in df.columns else "N/A")
-    
-    st.divider()
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("📊 Distribusi Rating")
-        rating_counts = pd.cut(df['rating'], bins=[0, 5, 7, 8, 9, 10], labels=['0-5', '5-7', '7-8', '8-9', '9-10']).value_counts().sort_index()
-        st.bar_chart(rating_counts)
-    
-    with col2:
-        if 'jenis_tayangan' in df.columns:
-            st.subheader("🎬 Jenis Tayangan")
-            jenis_counts = df['jenis_tayangan'].value_counts()
-            st.bar_chart(jenis_counts)
-    
-    st.divider()
-    
-    st.subheader("🏆 Top 10 Anime Berdasarkan Rating")
-    top_anime = df.nlargest(10, 'rating')[['judul', 'rating', 'genre']]
-    st.dataframe(
-        top_anime,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "judul": "Judul",
-            "rating": st.column_config.NumberColumn("Rating", format="⭐ %.2f"),
-            "genre": "Genre"
-        }
-    )
 
