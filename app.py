@@ -235,7 +235,7 @@ with tab1:
                             st.plotly_chart(fig_words, use_container_width=True)
                     
                     st.divider()
-                    st.markdown("#### 📈 Evaluasi Metrik Rekomendasi")
+                    st.markdown("#### Evaluasi Hasil Rekomendasi")
                     
                     if evaluation_metrics:
                         col_metrics1, col_metrics2, col_metrics3 = st.columns(3)
