@@ -103,7 +103,7 @@ def calculate_evaluation_metrics(recommendations, original_anime_idx, df):
         print(f"Error calculating metrics: {e}")
         return None
 
-# Fungsi rekomendasi utama
+# Fungsi rekomendasi
 def get_recommendations(anime_title, df, tfidf_matrix, n_recommendations=5):
     try:
         # Cari index anime
