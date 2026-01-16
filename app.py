@@ -30,13 +30,10 @@ with st.sidebar:
     st.metric("Total Anime", len(df))
     st.metric("Rata-rata Rating", f"{df['rating'].mean():.2f}")
     st.divider()
-
-# Gunakan data asli tanpa filter
+    
 filtered_df = df.copy()
 
-# Tab navigasi
 tab1 = st.tabs(["🎯 Rekomendasi"])[0]
-
 with tab1:
     st.header("🎬 Cari Rekomendasi Anime")
     
@@ -152,7 +149,7 @@ with tab1:
                         )
                         st.plotly_chart(fig_scatter, use_container_width=True)
                     
-                    # Baris kedua: 2 grafik tambahan
+                    # Baris  grafik 2
                     col_chart3, col_chart4 = st.columns(2)
                     
                     with col_chart3:
@@ -203,7 +200,7 @@ with tab1:
                                         word_freq[word] = word_freq.get(word, 0) + 1
                         
                         if word_freq:
-                            # Ambil top 20 kata
+                            # Ambil top 15 kata
                             top_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:15]
                             words_df = pd.DataFrame(top_words, columns=['Kata', 'Frekuensi'])
                             
@@ -305,7 +302,7 @@ with tab1:
                         
                         st.plotly_chart(fig_metrics, use_container_width=True)
                     
-                    # Metrik statistik lainnya
+                    # Metrik statistik kesimpulan
                     st.divider()
                     st.markdown("#### 📊 Ringkasan Statistik")
                     
@@ -327,7 +324,7 @@ with tab1:
                 
                 st.subheader("✨ Rekomendasi untuk Anda")
                 
-                # Tampilkan rekomendasi dalam grid
+                # Tampilkan rekomendasi
                 for idx, (_, row) in enumerate(recommendations.iterrows()):
                     with st.container(border=True):
                         col_poster, col_info = st.columns([1, 3])
@@ -351,7 +348,7 @@ with tab1:
                             else:
                                 badge = "📌 Agak Mirip"
                             
-                            # Tampilkan metrik evaluasi jika tersedia
+                            # Tampilkan metrik evaluasi
                             if evaluation_metrics and idx < len(evaluation_metrics['individual_precisions']):
                                 precision = evaluation_metrics['individual_precisions'][idx]
                                 recall = evaluation_metrics['individual_recalls'][idx]
